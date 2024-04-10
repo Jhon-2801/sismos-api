@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -28,15 +27,13 @@ func makeGetFeactures(s services.Service) Controller {
 		// Parsear los parámetros de consulta
 		pageStr := c.Query("page")
 		perPageStr := c.Query("per_page")
+		magTypes := c.QueryArray("mag_type[]")
 
 		// Convertir los valores de los parámetros de consulta a enteros
 		page, _ := strconv.Atoi(pageStr)
-
 		perPage, _ := strconv.Atoi(perPageStr)
-		// magTypes := c.QueryArray("mag_type[]")
 
 		total, err := s.Count()
-		fmt.Println(total)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
@@ -49,7 +46,7 @@ func makeGetFeactures(s services.Service) Controller {
 			return
 		}
 
-		data, err := s.GetFeactures(meta.PerPage, meta.Page)
+		data, err := s.GetFeactures(meta.PerPage, meta.Page, magTypes)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return

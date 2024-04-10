@@ -10,7 +10,7 @@ import (
 
 type (
 	Service interface {
-		GetFeactures(limit, offset int) ([]*models.Feature, error)
+		GetFeactures(limit, offset int, filters []string) ([]*models.Feature, error)
 		Count() (int, error)
 	}
 
@@ -29,7 +29,7 @@ func (s *service) Count() (int, error) {
 
 }
 
-func (s *service) GetFeactures(limit, offset int) ([]*models.Feature, error) {
+func (s *service) GetFeactures(limit, offset int, filters []string) ([]*models.Feature, error) {
 
 	geoJson, err := s.repo.HttpGet(limit, offset)
 	if err != nil {
@@ -44,7 +44,7 @@ func (s *service) GetFeactures(limit, offset int) ([]*models.Feature, error) {
 	}
 
 	//Obtener de la base de datos
-	featuresModels, err := s.repo.GetFeatures(offset, limit)
+	featuresModels, err := s.repo.GetFeatures(offset, limit, filters)
 	if err != nil {
 		return nil, err
 	}

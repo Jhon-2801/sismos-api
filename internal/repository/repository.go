@@ -17,7 +17,7 @@ type (
 	Repository interface {
 		HttpGet(limit, offset int) (*models.GeoJSON, error)
 		HttpCount() (int, error)
-		GetFeatures(offsite, limit int) ([]models.Events, error)
+		GetFeatures(offsite, limit int, filters []string) ([]models.Events, error)
 		PostFeatures(features []*models.Events) error
 	}
 
@@ -81,10 +81,10 @@ func (repo *repo) HttpGet(limit, offset int) (*models.GeoJSON, error) {
 }
 
 // GetFeactures implements Repository.
-func (repo *repo) GetFeatures(offsite, limit int) ([]models.Events, error) {
+func (repo *repo) GetFeatures(offsite, limit int, filters []string) ([]models.Events, error) {
 	var c []models.Events
 	tx := repo.db.Model(&c)
-	// tx = applyFilters(tx, filters)
+	tx.Where("mag_type IN (?)", filters).Find(&c)
 	tx = tx.Limit(limit).Offset(offsite)
 	result := tx.Order("created_at desc").Find(&c)
 	if result.Error != nil {

@@ -38,13 +38,13 @@ func (s *service) GetFeactures(limit, offset int) ([]*models.Feature, error) {
 
 	//Persistir en la base de datos
 	features := parcerGeoJsonToEvents(geoJson)
-	err = s.repo.PostFectures(features)
+	err = s.repo.PostFeatures(features)
 	if err != nil {
 		return nil, err
 	}
 
 	//Obtener de la base de datos
-	featuresModels, err := s.repo.GetFeactures(offset, limit)
+	featuresModels, err := s.repo.GetFeatures(offset, limit)
 	if err != nil {
 		return nil, err
 	}

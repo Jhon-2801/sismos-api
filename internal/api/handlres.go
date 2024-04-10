@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ func makeGetFeactures(s services.Service) Controller {
 		// magTypes := c.QueryArray("mag_type[]")
 
 		total, err := s.Count()
+		fmt.Println(total)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
@@ -52,11 +54,12 @@ func makeGetFeactures(s services.Service) Controller {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
 		}
+
 		c.IndentedJSON(http.StatusOK, gin.H{
 			"data": data,
 			"pagination": gin.H{
 				"curren_page": meta.Page,
-				"total":       meta.TotalCount,
+				"total":       total,
 				"perPage":     meta.PerPage,
 			}})
 

@@ -3,7 +3,9 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -15,8 +17,8 @@ type (
 	Repository interface {
 		HttpGet(limit, offset int) (*models.GeoJSON, error)
 		HttpCount() (int, error)
-		GetFeactures(offsite, limit int) ([]models.Events, error)
-		PostFectures(features []*models.Events) error
+		GetFeatures(offsite, limit int) ([]models.Events, error)
+		PostFeatures(features []*models.Events) error
 	}
 
 	repo struct {
@@ -30,12 +32,25 @@ func NewRepo(db *gorm.DB) Repository {
 
 // httpGet implements Repository.
 func (repo *repo) HttpCount() (int, error) {
-	var count int64
-	tx := repo.db.Model(models.Events{})
-	if err := tx.Count(&count).Error; err != nil {
-		return 0, nil
+	starttime := time.Now()
+	endtime := starttime.AddDate(0, 0, -30)
+	starttimeF := starttime.Format("2006-01-02")
+	endtimef := endtime.Format("2006-01-02")
+
+	path := fmt.Sprintf("https://earthquake.usgs.gov/fdsnws/event/1/count?starttime=%s&endtime=%s", endtimef, starttimeF)
+	resp, err := http.Get(path)
+	if err != nil {
+		return 0, err
 	}
-	return int(count), nil
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	count, err := strconv.Atoi(string(body))
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 // httpGet implements Repository.
@@ -66,7 +81,7 @@ func (repo *repo) HttpGet(limit, offset int) (*models.GeoJSON, error) {
 }
 
 // GetFeactures implements Repository.
-func (repo *repo) GetFeactures(offsite, limit int) ([]models.Events, error) {
+func (repo *repo) GetFeatures(offsite, limit int) ([]models.Events, error) {
 	var c []models.Events
 	tx := repo.db.Model(&c)
 	// tx = applyFilters(tx, filters)
@@ -80,7 +95,7 @@ func (repo *repo) GetFeactures(offsite, limit int) ([]models.Events, error) {
 
 // PostFectures implements Repository.
 // Todo: Agregar canal para notificar el error
-func (repo *repo) PostFectures(features []*models.Events) error {
+func (repo *repo) PostFeatures(features []*models.Events) error {
 	var wg sync.WaitGroup
 	for _, v := range features {
 		wg.Add(1)

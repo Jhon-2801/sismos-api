@@ -25,6 +25,7 @@ func main() {
 
 	router := gin.Default()
 	router.GET("/api/events", gin.HandlerFunc(sismoEnd.GetFeactures))
+	router.POST("/api/:id/comments", gin.HandlerFunc(sismoEnd.PostComment))
 
 	router.Run(":8080")
 }

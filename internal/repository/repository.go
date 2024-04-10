@@ -18,7 +18,9 @@ type (
 		HttpGet(limit, offset int) (*models.GeoJSON, error)
 		HttpCount() (int, error)
 		GetFeatures(offsite, limit int, filters []string) ([]models.Events, error)
+		GetFeatureById(id int) (models.Events, error)
 		PostFeatures(features []*models.Events) error
+		PostComment(comment *models.Comment) error
 	}
 
 	repo struct {
@@ -93,6 +95,13 @@ func (repo *repo) GetFeatures(offsite, limit int, filters []string) ([]models.Ev
 	return c, nil
 }
 
+// GetFeatureById implements Repository.
+func (repo *repo) GetFeatureById(id int) (models.Events, error) {
+	feacture := models.Events{}
+	err := repo.db.Where("id = ?", id).First(&feacture).Error
+	return feacture, err
+}
+
 // PostFectures implements Repository.
 // Todo: Agregar canal para notificar el error
 func (repo *repo) PostFeatures(features []*models.Events) error {
@@ -114,5 +123,13 @@ func (repo *repo) PostFeatures(features []*models.Events) error {
 		}(v)
 	}
 	wg.Wait()
+	return nil
+}
+
+// PostComment implements Repository.
+func (repo *repo) PostComment(comment *models.Comment) error {
+	if err := repo.db.Create(comment).Error; err != nil {
+		return err
+	}
 	return nil
 }

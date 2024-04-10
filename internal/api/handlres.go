@@ -13,12 +13,17 @@ type (
 	Controller func(c *gin.Context)
 	Endpoints  struct {
 		GetFeactures Controller
+		PostComment  Controller
+	}
+	CommentReq struct {
+		Body string `form:"body"`
 	}
 )
 
 func MakeEndPoints(s services.Service) Endpoints {
 	return Endpoints{
 		GetFeactures: makeGetFeactures(s),
+		PostComment:  makePostComment(s),
 	}
 }
 
@@ -60,5 +65,39 @@ func makeGetFeactures(s services.Service) Controller {
 				"perPage":     meta.PerPage,
 			}})
 
+	}
+}
+
+func makePostComment(s services.Service) Controller {
+	return func(c *gin.Context) {
+		var req CommentReq
+		c.ShouldBind(&req)
+
+		if len(req.Body) <= 0 {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "comment is required"})
+			return
+		}
+
+		idStr := c.Param("id")
+
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": err})
+			return
+		}
+
+		_, err = s.GetFeactureById(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		err = s.PostComment(id, req.Body)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
+			return
+		}
 	}
 }

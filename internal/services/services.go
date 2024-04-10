@@ -11,6 +11,8 @@ import (
 type (
 	Service interface {
 		GetFeactures(limit, offset int, filters []string) ([]*models.Feature, error)
+		GetFeactureById(id int) (models.Events, error)
+		PostComment(id int, comment string) error
 		Count() (int, error)
 	}
 
@@ -21,12 +23,6 @@ type (
 
 func NewService(repo repository.Repository) Service {
 	return &service{repo: repo}
-}
-
-// count implements Service.
-func (s *service) Count() (int, error) {
-	return s.repo.HttpCount()
-
 }
 
 func (s *service) GetFeactures(limit, offset int, filters []string) ([]*models.Feature, error) {
@@ -53,6 +49,26 @@ func (s *service) GetFeactures(limit, offset int, filters []string) ([]*models.F
 	featuresResponse := parcerModelToResponse(featuresModels)
 
 	return featuresResponse, nil
+}
+
+// GetFeactureById implements Service.
+func (s *service) GetFeactureById(id int) (models.Events, error) {
+	return s.repo.GetFeatureById(id)
+}
+
+// PostComment implements Service.
+func (s *service) PostComment(id int, comment string) error {
+	commentModel := models.Comment{
+		FeatureID: id,
+		Body:      comment,
+	}
+	return s.repo.PostComment(&commentModel)
+}
+
+// count implements Service.
+func (s *service) Count() (int, error) {
+	return s.repo.HttpCount()
+
 }
 
 func parcerGeoJsonToEvents(geoJson *models.GeoJSON) []*models.Events {

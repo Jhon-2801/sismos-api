@@ -1,10 +1,12 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/Jhon-2801/courses-meta/meta"
+	"github.com/Jhon-2801/sismos-api/internal/models"
 	"github.com/Jhon-2801/sismos-api/internal/services"
 	"github.com/gin-gonic/gin"
 )
@@ -12,8 +14,9 @@ import (
 type (
 	Controller func(c *gin.Context)
 	Endpoints  struct {
-		GetFeactures Controller
-		PostComment  Controller
+		GetFeactures  Controller
+		PostComment   Controller
+		UpdateFeature Controller
 	}
 	CommentReq struct {
 		Body string `form:"body"`
@@ -22,8 +25,9 @@ type (
 
 func MakeEndPoints(s services.Service) Endpoints {
 	return Endpoints{
-		GetFeactures: makeGetFeactures(s),
-		PostComment:  makePostComment(s),
+		GetFeactures:  makeGetFeactures(s),
+		UpdateFeature: makeUpdateFeacture(s),
+		PostComment:   makePostComment(s),
 	}
 }
 
@@ -43,7 +47,6 @@ func makeGetFeactures(s services.Service) Controller {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
 		}
-
 		meta, err := meta.New(page, perPage, total, "10")
 
 		if err != nil {
@@ -65,6 +68,60 @@ func makeGetFeactures(s services.Service) Controller {
 				"perPage":     meta.PerPage,
 			}})
 
+	}
+}
+
+func makeUpdateFeacture(s services.Service) Controller {
+	return func(c *gin.Context) {
+		var req models.Events
+		err := c.ShouldBind(&req)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": err})
+			return
+		}
+		idStr := c.Param("id")
+
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": err})
+			return
+		}
+
+		_, err = s.GetFeactureById(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		req.ID = id
+
+		requiredFields := []struct {
+			Name  string
+			Value string
+		}{
+			{"EventID", req.EventID},
+			{"Magnitude", fmt.Sprintf("%f", req.Magnitude)},
+			{"Place", req.Place},
+			{"URL", req.URL},
+			{"MagType", req.MagType},
+			{"Title", req.Title},
+			{"Longitude", fmt.Sprintf("%f", req.Longitude)},
+			{"Latitude", fmt.Sprintf("%f", req.Latitude)},
+		}
+		for _, field := range requiredFields {
+			if field.Value == "" {
+				c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": fmt.Sprintf("%s is required", field.Name)})
+				return
+			}
+		}
+
+		err = s.UpdateFeactureById(&req)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
+			return
+		}
 	}
 }
 
@@ -99,5 +156,6 @@ func makePostComment(s services.Service) Controller {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
 		}
+		c.JSON(http.StatusCreated, gin.H{"status": 201, "message": "create"})
 	}
 }

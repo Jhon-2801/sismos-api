@@ -19,6 +19,7 @@ type (
 		HttpCount() (int, error)
 		GetFeatures(offsite, limit int, filters []string) ([]models.Events, error)
 		GetFeatureById(id int) (models.Events, error)
+		UpdateFeature(feature *models.Events) error
 		PostFeatures(features []*models.Events) error
 		PostComment(comment *models.Comment) error
 	}
@@ -102,8 +103,12 @@ func (repo *repo) GetFeatureById(id int) (models.Events, error) {
 	return feacture, err
 }
 
+// UpdateFeature implements Repository.
+func (repo *repo) UpdateFeature(feature *models.Events) error {
+	return repo.db.Save(feature).Error
+}
+
 // PostFectures implements Repository.
-// Todo: Agregar canal para notificar el error
 func (repo *repo) PostFeatures(features []*models.Events) error {
 	var wg sync.WaitGroup
 	for _, v := range features {

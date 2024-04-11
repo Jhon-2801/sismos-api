@@ -12,6 +12,7 @@ type (
 	Service interface {
 		GetFeactures(limit, offset int, filters []string) ([]*models.Feature, error)
 		GetFeactureById(id int) (models.Events, error)
+		UpdateFeactureById(feature *models.Events) error
 		PostComment(id int, comment string) error
 		Count() (int, error)
 	}
@@ -54,6 +55,13 @@ func (s *service) GetFeactures(limit, offset int, filters []string) ([]*models.F
 // GetFeactureById implements Service.
 func (s *service) GetFeactureById(id int) (models.Events, error) {
 	return s.repo.GetFeatureById(id)
+}
+
+// UpdateFeactureById implements Service.
+func (s *service) UpdateFeactureById(feature *models.Events) error {
+	resp, _ := s.GetFeactureById(feature.ID)
+	feature.CreatedAt = resp.CreatedAt
+	return s.repo.UpdateFeature(feature)
 }
 
 // PostComment implements Service.

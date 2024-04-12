@@ -24,6 +24,7 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.Default()
+	router.Use(api.CORSMiddleware())
 	router.GET("/api/features", gin.HandlerFunc(sismoEnd.GetFeactures))
 	router.PUT("/api/:id/feature", gin.HandlerFunc(sismoEnd.UpdateFeature))
 	router.POST("/api/:id/comments", gin.HandlerFunc(sismoEnd.PostComment))

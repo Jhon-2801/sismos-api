@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -39,9 +40,13 @@ func (repo *repo) HttpCount() (int, error) {
 	endtime := starttime.AddDate(0, 0, -30)
 	starttimeF := starttime.Format("2006-01-02")
 	endtimef := endtime.Format("2006-01-02")
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 
 	path := fmt.Sprintf("https://earthquake.usgs.gov/fdsnws/event/1/count?starttime=%s&endtime=%s", endtimef, starttimeF)
-	resp, err := http.Get(path)
+	resp, err := client.Get(path)
 	if err != nil {
 		return 0, err
 	}
@@ -63,9 +68,12 @@ func (repo *repo) HttpGet(limit, offset int) (*models.GeoJSON, error) {
 	endtime := starttime.AddDate(0, 0, -30)
 	starttimeF := starttime.Format("2006-01-02")
 	endtimef := endtime.Format("2006-01-02")
-
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	path := fmt.Sprintf("https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=%s&endtime=%s&limit=%d&offset=%d", endtimef, starttimeF, limit, offset)
-	resp, err := http.Get(path)
+	resp, err := client.Get(path)
 	if err != nil {
 		return nil, err
 	}

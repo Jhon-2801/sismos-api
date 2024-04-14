@@ -11,9 +11,10 @@ import (
 type (
 	Service interface {
 		GetFeactures(limit, offset int, filters []string) ([]*models.Feature, error)
-		GetFeactureById(id int) (models.Events, error)
-		UpdateFeactureById(feature *models.Events) error
+		GetFeactureById(id int) (models.Events, *models.Feature, error)
+		UpdateFeactureById(feature *models.Events) (models.Feature, error)
 		PostComment(id int, comment string) error
+		GetComment(id int) ([]models.Comment, error)
 		Count() (int, error)
 	}
 
@@ -47,21 +48,28 @@ func (s *service) GetFeactures(limit, offset int, filters []string) ([]*models.F
 	}
 
 	//Pasear para mandar model de respuesta
-	featuresResponse := parcerModelToResponse(featuresModels)
+	featuresResponse := parcerModelArrayToResponse(featuresModels)
 
 	return featuresResponse, nil
 }
 
 // GetFeactureById implements Service.
-func (s *service) GetFeactureById(id int) (models.Events, error) {
-	return s.repo.GetFeatureById(id)
+func (s *service) GetFeactureById(id int) (models.Events, *models.Feature, error) {
+	resp, err := s.repo.GetFeatureById(id)
+	if err != nil {
+		return resp, nil, err
+	}
+	featuresResponse := parcerModelToResponse(&resp)
+	return resp, featuresResponse, nil
 }
 
 // UpdateFeactureById implements Service.
-func (s *service) UpdateFeactureById(feature *models.Events) error {
-	resp, _ := s.GetFeactureById(feature.ID)
+func (s *service) UpdateFeactureById(feature *models.Events) (models.Feature, error) {
+	resp, _, _ := s.GetFeactureById(feature.ID)
 	feature.CreatedAt = resp.CreatedAt
-	return s.repo.UpdateFeature(feature)
+	err := s.repo.UpdateFeature(feature)
+	featuresResponse := parcerModelToResponse(feature)
+	return *featuresResponse, err
 }
 
 // PostComment implements Service.
@@ -71,6 +79,11 @@ func (s *service) PostComment(id int, comment string) error {
 		Body:      comment,
 	}
 	return s.repo.PostComment(&commentModel)
+}
+
+// GetComment implements Service.
+func (s *service) GetComment(idFeature int) ([]models.Comment, error) {
+	return s.repo.GetComment(idFeature)
 }
 
 // count implements Service.
@@ -111,7 +124,7 @@ func parcerGeoJsonToEvents(geoJson *models.GeoJSON) []*models.Events {
 	return features
 }
 
-func parcerModelToResponse(model []models.Events) []*models.Feature {
+func parcerModelArrayToResponse(model []models.Events) []*models.Feature {
 	var (
 		featuresResponse []*models.Feature
 		mutex            sync.Mutex
@@ -154,4 +167,35 @@ func parcerModelToResponse(model []models.Events) []*models.Feature {
 	}
 	wg.Wait()
 	return featuresResponse
+}
+
+func parcerModelToResponse(model *models.Events) *models.Feature {
+	// Crear las coordenadas
+	coordinates := models.Coordinates{
+		Longitude: model.Longitude,
+		Latitude:  model.Latitude,
+	}
+
+	// Crear el modelo Feature
+	feature := &models.Feature{
+		ID:   model.ID,
+		Type: "feature",
+		Attributes: models.FeatureAttributes{
+			ExternalID:  model.EventID,
+			Magnitude:   model.Magnitude,
+			Place:       model.Place,
+			Time:        model.EventTime,
+			Tsunami:     model.Tsunami,
+			MagType:     model.MagType,
+			Title:       model.Title,
+			Coordinates: coordinates,
+		},
+		Links: struct {
+			ExternalURL string `json:"external_url"`
+		}{
+			ExternalURL: model.URL,
+		},
+	}
+
+	return feature
 }

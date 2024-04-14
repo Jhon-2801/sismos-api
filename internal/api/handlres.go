@@ -14,9 +14,11 @@ import (
 type (
 	Controller func(c *gin.Context)
 	Endpoints  struct {
-		GetFeactures  Controller
-		PostComment   Controller
-		UpdateFeature Controller
+		GetAllFeactures Controller
+		GetFeacture     Controller
+		PostComment     Controller
+		UpdateFeature   Controller
+		GetComment      Controller
 	}
 	CommentReq struct {
 		Body string `form:"body"`
@@ -25,13 +27,15 @@ type (
 
 func MakeEndPoints(s services.Service) Endpoints {
 	return Endpoints{
-		GetFeactures:  makeGetFeactures(s),
-		UpdateFeature: makeUpdateFeacture(s),
-		PostComment:   makePostComment(s),
+		GetAllFeactures: makeGetAllFeactures(s),
+		GetFeacture:     makeFeacture(s),
+		UpdateFeature:   makeUpdateFeacture(s),
+		PostComment:     makePostComment(s),
+		GetComment:      makeGetComment(s),
 	}
 }
 
-func makeGetFeactures(s services.Service) Controller {
+func makeGetAllFeactures(s services.Service) Controller {
 	return func(c *gin.Context) {
 		// Parsear los parámetros de consulta
 		pageStr := c.Query("page")
@@ -67,7 +71,26 @@ func makeGetFeactures(s services.Service) Controller {
 				"total":       total,
 				"perPage":     meta.PerPage,
 			}})
+	}
+}
+func makeFeacture(s services.Service) Controller {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
 
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": err})
+			return
+		}
+
+		_, feature, err := s.GetFeactureById(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, gin.H{"status": 200, "data": feature})
 	}
 }
 
@@ -87,7 +110,7 @@ func makeUpdateFeacture(s services.Service) Controller {
 			return
 		}
 
-		_, err = s.GetFeactureById(id)
+		_, _, err = s.GetFeactureById(id)
 
 		if err != nil {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
@@ -116,12 +139,13 @@ func makeUpdateFeacture(s services.Service) Controller {
 			}
 		}
 
-		err = s.UpdateFeactureById(&req)
+		data, err := s.UpdateFeactureById(&req)
 
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
 		}
+		c.JSON(http.StatusOK, gin.H{"status": 200, "data": data})
 	}
 }
 
@@ -143,7 +167,7 @@ func makePostComment(s services.Service) Controller {
 			return
 		}
 
-		_, err = s.GetFeactureById(id)
+		_, _, err = s.GetFeactureById(id)
 
 		if err != nil {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
@@ -156,6 +180,33 @@ func makePostComment(s services.Service) Controller {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"status": 500, "message": err})
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{"status": 201, "message": "create"})
+		c.JSON(http.StatusCreated, gin.H{"status": 201, "message": "created"})
+	}
+}
+
+func makeGetComment(s services.Service) Controller {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": err})
+			return
+		}
+		_, _, err = s.GetFeactureById(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		comments, err := s.GetComment(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, gin.H{"status": 200, "data": comments})
 	}
 }

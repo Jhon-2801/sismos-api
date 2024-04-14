@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -22,6 +23,7 @@ type (
 		UpdateFeature(feature *models.Events) error
 		PostFeatures(features []*models.Events) error
 		PostComment(comment *models.Comment) error
+		GetComment(FeatureID int) ([]models.Comment, error)
 	}
 
 	repo struct {
@@ -39,9 +41,13 @@ func (repo *repo) HttpCount() (int, error) {
 	endtime := starttime.AddDate(0, 0, -30)
 	starttimeF := starttime.Format("2006-01-02")
 	endtimef := endtime.Format("2006-01-02")
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 
 	path := fmt.Sprintf("https://earthquake.usgs.gov/fdsnws/event/1/count?starttime=%s&endtime=%s", endtimef, starttimeF)
-	resp, err := http.Get(path)
+	resp, err := client.Get(path)
 	if err != nil {
 		return 0, err
 	}
@@ -63,9 +69,12 @@ func (repo *repo) HttpGet(limit, offset int) (*models.GeoJSON, error) {
 	endtime := starttime.AddDate(0, 0, -30)
 	starttimeF := starttime.Format("2006-01-02")
 	endtimef := endtime.Format("2006-01-02")
-
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	path := fmt.Sprintf("https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=%s&endtime=%s&limit=%d&offset=%d", endtimef, starttimeF, limit, offset)
-	resp, err := http.Get(path)
+	resp, err := client.Get(path)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +96,7 @@ func (repo *repo) HttpGet(limit, offset int) (*models.GeoJSON, error) {
 func (repo *repo) GetFeatures(offsite, limit int, filters []string) ([]models.Events, error) {
 	var c []models.Events
 	tx := repo.db.Model(&c)
-	tx.Where("mag_type IN (?)", filters).Find(&c)
+	tx = applyFilters(tx, filters)
 	tx = tx.Limit(limit).Offset(offsite)
 	result := tx.Order("created_at desc").Find(&c)
 	if result.Error != nil {
@@ -133,8 +142,22 @@ func (repo *repo) PostFeatures(features []*models.Events) error {
 
 // PostComment implements Repository.
 func (repo *repo) PostComment(comment *models.Comment) error {
-	if err := repo.db.Create(comment).Error; err != nil {
-		return err
+	return repo.db.Create(comment).Error
+}
+
+// GetComment implements Repository.
+func (repo *repo) GetComment(FeatureID int) ([]models.Comment, error) {
+	var c []models.Comment
+	err := repo.db.Where("feature_id = ?", FeatureID).Find(&c).Error
+
+	return c, err
+}
+
+func applyFilters(tx *gorm.DB, filters []string) *gorm.DB {
+	if len(filters) == 0 {
+		return tx
 	}
-	return nil
+	tx.Where("mag_type IN (?)", filters)
+	return tx
+
 }

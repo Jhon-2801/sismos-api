@@ -95,7 +95,7 @@ func (repo *repo) HttpGet(limit, offset int) (*models.GeoJSON, error) {
 func (repo *repo) GetFeatures(offsite, limit int, filters []string) ([]models.Events, error) {
 	var c []models.Events
 	tx := repo.db.Model(&c)
-	tx.Where("mag_type IN (?)", filters).Find(&c)
+	tx = applyFilters(tx, filters)
 	tx = tx.Limit(limit).Offset(offsite)
 	result := tx.Order("created_at desc").Find(&c)
 	if result.Error != nil {
@@ -145,4 +145,13 @@ func (repo *repo) PostComment(comment *models.Comment) error {
 		return err
 	}
 	return nil
+}
+
+func applyFilters(tx *gorm.DB, filters []string) *gorm.DB {
+	if len(filters) == 0 {
+		return tx
+	}
+	tx.Where("mag_type IN (?)", filters)
+	return tx
+
 }

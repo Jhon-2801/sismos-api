@@ -28,7 +28,8 @@ func main() {
 	router.GET("/api/features", gin.HandlerFunc(sismoEnd.GetAllFeactures))
 	router.GET("/api/:id/feature", gin.HandlerFunc(sismoEnd.GetFeacture))
 	router.PUT("/api/:id/feature", gin.HandlerFunc(sismoEnd.UpdateFeature))
-	router.POST("/api/:id/comments", gin.HandlerFunc(sismoEnd.PostComment))
+	router.POST("/api/:id/comment", gin.HandlerFunc(sismoEnd.PostComment))
+	router.GET("/api/:id/comments", gin.HandlerFunc(sismoEnd.GetComment))
 
 	router.Run(":8080")
 }

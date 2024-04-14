@@ -18,6 +18,7 @@ type (
 		GetFeacture     Controller
 		PostComment     Controller
 		UpdateFeature   Controller
+		GetComment      Controller
 	}
 	CommentReq struct {
 		Body string `form:"body"`
@@ -30,6 +31,7 @@ func MakeEndPoints(s services.Service) Endpoints {
 		GetFeacture:     makeFeacture(s),
 		UpdateFeature:   makeUpdateFeacture(s),
 		PostComment:     makePostComment(s),
+		GetComment:      makeGetComment(s),
 	}
 }
 
@@ -179,5 +181,32 @@ func makePostComment(s services.Service) Controller {
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{"status": 201, "message": "created"})
+	}
+}
+
+func makeGetComment(s services.Service) Controller {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": err})
+			return
+		}
+		_, _, err = s.GetFeactureById(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		comments, err := s.GetComment(id)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"status": 400, "message": "feature_id not found"})
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, gin.H{"status": 200, "data": comments})
 	}
 }

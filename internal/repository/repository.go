@@ -23,6 +23,7 @@ type (
 		UpdateFeature(feature *models.Events) error
 		PostFeatures(features []*models.Events) error
 		PostComment(comment *models.Comment) error
+		GetComment(FeatureID int) ([]models.Comment, error)
 	}
 
 	repo struct {
@@ -141,10 +142,15 @@ func (repo *repo) PostFeatures(features []*models.Events) error {
 
 // PostComment implements Repository.
 func (repo *repo) PostComment(comment *models.Comment) error {
-	if err := repo.db.Create(comment).Error; err != nil {
-		return err
-	}
-	return nil
+	return repo.db.Create(comment).Error
+}
+
+// GetComment implements Repository.
+func (repo *repo) GetComment(FeatureID int) ([]models.Comment, error) {
+	var c []models.Comment
+	err := repo.db.Where("feature_id = ?", FeatureID).Find(&c).Error
+
+	return c, err
 }
 
 func applyFilters(tx *gorm.DB, filters []string) *gorm.DB {

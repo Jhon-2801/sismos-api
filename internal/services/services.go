@@ -14,6 +14,7 @@ type (
 		GetFeactureById(id int) (models.Events, *models.Feature, error)
 		UpdateFeactureById(feature *models.Events) (models.Feature, error)
 		PostComment(id int, comment string) error
+		GetComment(id int) ([]models.Comment, error)
 		Count() (int, error)
 	}
 
@@ -78,6 +79,11 @@ func (s *service) PostComment(id int, comment string) error {
 		Body:      comment,
 	}
 	return s.repo.PostComment(&commentModel)
+}
+
+// GetComment implements Service.
+func (s *service) GetComment(idFeature int) ([]models.Comment, error) {
+	return s.repo.GetComment(idFeature)
 }
 
 // count implements Service.
